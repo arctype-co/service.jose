@@ -1,0 +1,4 @@
+*.swp
+*.swo
+pom.xml
+target
