@@ -1,5 +1,7 @@
 (ns arctype.service.jose
   (:import 
+    [com.nimbusds.jose EncryptionMethod JWEAlgorithm JWEHeader$Builder JWEObject Payload]
+    [com.nimbusds.jose.crypto DirectEncrypter]
     [javax.crypto KeyGenerator SecretKey]
     [javax.crypto.spec SecretKeySpec]
     [org.apache.commons.codec.binary Hex])
@@ -24,8 +26,17 @@
       (Hex/encodeHexString (.getEncoded sk)))))
 
 (S/defn encrypt :- S/Str
-  [body :- S/Str]
-  (throw (UnsupportedOperationException. "TODO encrypt")))
+  ([this body :- S/Str] (encrypt this (:default-key this) body))
+  ([{:keys [secret-keys]}
+    key-id :- S/Str
+    body :- S/Str] 
+   (let [secret-key (or (get secret-keys key-id) (throw (ex-info "Secret key not found" {:key-id key-id})))
+         header (-> (JWEHeader$Builder. JWEAlgorithm/DIR EncryptionMethod/A128GCM)
+                    (.keyID key-id)
+                    (.build))
+         obj (JWEObject. header (Payload. body))]
+     (.encrypt obj (DirectEncrypter. secret-key))
+     (.serialize obj))))
 
 (defrecord JoseService [default-key secret-keys]
   PLifecycle
