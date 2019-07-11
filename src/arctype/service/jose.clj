@@ -27,7 +27,7 @@
 (S/defn create
   [resource-name
    config :- Config]
-  (let [config (rmerge default-config config)]
+  (let [config (merge default-config config)]
     (resource/make-resource
-      (map->JoseService)
+      (map->JoseService {})
       resource-name)))
