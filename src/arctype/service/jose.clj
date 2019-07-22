@@ -38,6 +38,10 @@
      (.encrypt obj (DirectEncrypter. secret-key))
      (.serialize obj))))
 
+(S/defn decrypt :- S/Any
+  [this cipher-text :- S/Str]
+  (throw (UnsupportedOperationException. "decrypt not implemented")))
+
 (defrecord JoseService [default-key secret-keys]
   PLifecycle
 
