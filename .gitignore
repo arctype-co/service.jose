@@ -2,3 +2,5 @@
 *.swo
 pom.xml
 target
+.lein-repl-history
+.nrepl-port

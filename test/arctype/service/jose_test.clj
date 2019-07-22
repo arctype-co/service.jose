@@ -12,4 +12,8 @@
   (let [svc (jose/create :jose (new-test-config))
         data "Hello world"
         encrypted (jose/encrypt svc data)]
-    (is (string? encrypted))))
+    (is (string? encrypted))
+    
+    (let [clear (jose/decrypt svc encrypted)]
+      (is (string? clear))
+      (is (= data clear)))))

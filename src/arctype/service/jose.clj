@@ -1,7 +1,7 @@
 (ns arctype.service.jose
   (:import 
     [com.nimbusds.jose EncryptionMethod JWEAlgorithm JWEHeader$Builder JWEObject Payload]
-    [com.nimbusds.jose.crypto DirectEncrypter]
+    [com.nimbusds.jose.crypto DirectDecrypter DirectEncrypter]
     [javax.crypto KeyGenerator SecretKey]
     [javax.crypto.spec SecretKeySpec]
     [org.apache.commons.codec.binary Hex])
@@ -25,12 +25,16 @@
     (let [sk (.generateKey keygen)]
       (Hex/encodeHexString (.getEncoded sk)))))
 
+(defn- require-secret-key
+  [{:keys [secret-keys]} key-id]
+  (or (get secret-keys key-id) (throw (ex-info "Secret key not found" {:key-id key-id}))))
+
 (S/defn encrypt :- S/Str
   ([this body :- S/Str] (encrypt this (:default-key this) body))
-  ([{:keys [secret-keys]}
+  ([this
     key-id :- S/Str
     body :- S/Str] 
-   (let [secret-key (or (get secret-keys key-id) (throw (ex-info "Secret key not found" {:key-id key-id})))
+   (let [secret-key (require-secret-key this key-id)
          header (-> (JWEHeader$Builder. JWEAlgorithm/DIR EncryptionMethod/A128GCM)
                     (.keyID key-id)
                     (.build))
@@ -39,8 +43,12 @@
      (.serialize obj))))
 
 (S/defn decrypt :- S/Any
-  [this cipher-text :- S/Str]
-  (throw (UnsupportedOperationException. "decrypt not implemented")))
+  [this body :- S/Str] 
+  (let [jwe-obj (JWEObject/parse body)
+        kid (.getKeyID (.getHeader jwe-obj))
+        secret-key (require-secret-key this kid)]
+    (.decrypt jwe-obj (DirectDecrypter. secret-key))
+    (.toString (.getPayload jwe-obj))))
 
 (defrecord JoseService [default-key secret-keys]
   PLifecycle
